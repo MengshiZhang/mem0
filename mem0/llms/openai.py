@@ -37,7 +37,14 @@ class OpenAILLM(LLMBase):
         if not self.config.model:
             self.config.model = "gpt-4o-mini"
 
-        if os.environ.get("OPENROUTER_API_KEY"):  # Use OpenRouter
+        if os.environ.get("TENSORBLOCK_FORGE_API_KEY"):  # Use TensorBlock Forge
+            self.client = OpenAI(
+                api_key=os.environ.get("TENSORBLOCK_FORGE_API_KEY"),
+                base_url=self.config.tensorblock_forge_base_url
+                or os.getenv("TENSORBLOCK_FORGE_BASE_URL")
+                or "https://api.forge.tensorblock.co/v1",
+            )
+        elif os.environ.get("OPENROUTER_API_KEY"):  # Use OpenRouter
             self.client = OpenAI(
                 api_key=os.environ.get("OPENROUTER_API_KEY"),
                 base_url=self.config.openrouter_base_url
@@ -108,7 +115,10 @@ class OpenAILLM(LLMBase):
             "messages": messages,
         })
 
-        if os.getenv("OPENROUTER_API_KEY"):
+        if os.getenv("TENSORBLOCK_FORGE_API_KEY"):
+            # TensorBlock Forge is OpenAI compatible, no special params needed
+            pass
+        elif os.getenv("OPENROUTER_API_KEY"):
             openrouter_params = {}
             if self.config.models:
                 openrouter_params["models"] = self.config.models
@@ -123,7 +133,7 @@ class OpenAILLM(LLMBase):
                 openrouter_params["extra_headers"] = extra_headers
 
             params.update(**openrouter_params)
-        
+
         else:
             openai_specific_generation_params = ["store"]
             for param in openai_specific_generation_params:
